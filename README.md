@@ -54,5 +54,12 @@
 
 ## Versions
 
+### **1.0.2**
+- Removed excessive debug logs to improve performance.
+
+### **1.0.1**
+- Resolved an issue where cards failed to function in online matches
+- minor adjustments and stability improvements.
+
 ### **1.0.0**
 - Initial release
