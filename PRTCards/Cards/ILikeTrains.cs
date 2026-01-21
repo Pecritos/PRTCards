@@ -31,6 +31,8 @@ namespace PRT.Cards
         {
             var effects = player.gameObject.GetComponent<BlockSpawnerEffects>();
             if (effects == null) effects = player.gameObject.AddComponent<BlockSpawnerEffects>();
+            var TrainNet = player.gameObject.GetComponent<TrainNetworkProxy>();
+            if (TrainNet == null) TrainNet = player.gameObject.AddComponent<TrainNetworkProxy>();
 
             blockCallback = (BlockTrigger.BlockTriggerType triggerType) =>
             {
@@ -48,7 +50,7 @@ namespace PRT.Cards
 
                 if (effects.GodOfTrains == true)
                 {
-                    TrainSpawner.SpawnTrensAsterisco(player);
+                    TrainSpawner.SpawnGodTrains(player);
                 }
                 else
                 {

@@ -87,9 +87,6 @@
     <Reference Include="UnityEngine.UI">
       <HintPath>..\..\..\..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\ROUNDS\ROUNDS_Data\Managed\UnityEngine.UI.dll</HintPath>
     </Reference>
-    <Reference Include="UnityExplorer.BIE5.Mono">
-      <HintPath>..\..\..\..\..\AppData\Roaming\Thunderstore Mod Manager\DataFolder\ROUNDS\profiles\Default\BepInEx\plugins\sinai-dev-UnityExplorer\UnityExplorer.BIE5.Mono.dll</HintPath>
-    </Reference>
     <Reference Include="UniverseLib.Mono">
       <HintPath>..\..\..\..\..\AppData\Roaming\Thunderstore Mod Manager\DataFolder\ROUNDS\profiles\Default\BepInEx\plugins\sinai-dev-UnityExplorer\UniverseLib.Mono.dll</HintPath>
     </Reference>

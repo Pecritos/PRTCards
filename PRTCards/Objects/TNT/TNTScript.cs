@@ -1,9 +1,10 @@
-﻿using System;
+﻿using Photon.Pun;
+using PRT;
+using PRT.Objects.TNT;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using PRT;
-using PRT.Objects.TNT;
 using UnityEngine;
 using static UnityEngine.UI.GridLayoutGroup;
 
@@ -20,13 +21,13 @@ public class TNTScript : MonoBehaviour
 
     public int numberOfCopies = 0;
     public bool isCopy = false;
+    public bool copiesCreated = false;
 
     private int loopCount = 0;
     private float maxLoops = 3;
     private bool isPlaying = false;
     private bool touchedGround = false;
     private bool isInvisible = true;
-    private bool copiesCreated = false;
     private List<Collider2D> copyColliders = new List<Collider2D>();
 
     private SpriteRenderer sr;
@@ -141,9 +142,7 @@ public class TNTScript : MonoBehaviour
 
     void Update()
     {
-        if (Input.GetKeyDown(KeyCode.Space))
-
-            if (isInvisible) return;
+        if (isInvisible) return;
 
         float zDist = Mathf.Abs(transform.position.z - Camera.main.transform.position.z);
         float cameraTop = Camera.main.ViewportToWorldPoint(new Vector3(0, 1, zDist)).y;
@@ -179,9 +178,16 @@ public class TNTScript : MonoBehaviour
         }
 
         float cameraBottom = Camera.main.ViewportToWorldPoint(new Vector3(0.5f, 0f, zDist)).y;
-        float limiteY = cameraBottom - 0.2f; if (transform.position.y < limiteY)
+        float limitY = cameraBottom - 0.2f; 
+        if (transform.position.y < limitY)
         {
-            Destroy(gameObject);
+            PhotonView pv = GetComponent<PhotonView>();
+            if (pv != null && pv.IsMine)             {
+                PhotonNetwork.Destroy(gameObject);
+            }
+            else if (pv == null)             {
+                Destroy(gameObject);
+            }
         }
     }
 
@@ -216,9 +222,12 @@ public class TNTScript : MonoBehaviour
 
     void CreateCopies()
     {
-        
+        if (!PhotonNetwork.IsMasterClient) return;
 
-        Collider2D myCollider = GetComponent<Collider2D>();
+                int[] cIDs = new int[numberOfCopies];
+                int pID = PhotonNetwork.AllocateViewID(false);
+
+        Vector2[] positions = new Vector2[numberOfCopies];
 
         float zDist = Mathf.Abs(transform.position.z - Camera.main.transform.position.z);
         Vector3 bottomLeft = Camera.main.ViewportToWorldPoint(new Vector3(0, 0, zDist));
@@ -228,30 +237,27 @@ public class TNTScript : MonoBehaviour
 
         for (int i = 0; i < numberOfCopies; i++)
         {
+            cIDs[i] = PhotonNetwork.AllocateViewID(false);
             float randomX = UnityEngine.Random.Range(bottomLeft.x, topRight.x);
             float randomY = UnityEngine.Random.Range(cameraTop + 0.5f, maxTop);
-            Vector3 spawnPos = new Vector3(randomX, randomY, transform.position.z);
 
-            GameObject copy = Instantiate(gameObject, spawnPos, transform.rotation);
-
-            TNTScript copyScript = copy.GetComponent<TNTScript>();
-            if (copyScript != null)
-            {
-                copyScript.isCopy = true;
-                copyScript.StartTNT(this.numberOfCopies, this.maxLoops, false);
-            }
-
-            Collider2D copyCollider = copy.GetComponent<Collider2D>();
-            if (myCollider != null && copyCollider != null)
-            {
-                Physics2D.IgnoreCollision(myCollider, copyCollider);
-                copyColliders.Add(copyCollider);
-            }
+            positions[i] = new Vector2(randomX, randomY);
         }
 
-        for (int i = 0; i < copyColliders.Count; i++)
-            for (int j = i + 1; j < copyColliders.Count; j++)
-                Physics2D.IgnoreCollision(copyColliders[i], copyColliders[j]);
+                if (TNTNetworkProxy.Instance != null)
+        {
+            TNTNetworkProxy.Instance.RequestNetworkSync(
+                pID,
+                cIDs,
+                positions,
+                gameObject.GetInstanceID(),
+                maxLoops,
+                tntScale,
+                player_spawner.playerID
+            );
+        }
+
+        Destroy(gameObject);
     }
 
     IEnumerator ScaleUpAndDestroySprite()

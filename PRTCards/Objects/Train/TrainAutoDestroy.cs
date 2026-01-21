@@ -3,14 +3,14 @@ using UnityEngine;
 
 public class TrainAutoDestroy : MonoBehaviour
 {
-    public GameObject alertaVisual;
-    public List<GameObject> vagoes = new List<GameObject>();
-    public bool bumerangueAtivo = false;
+    public GameObject visualAlert;
+    public List<GameObject> wagons = new List<GameObject>();
+    public bool boomerangactive = false;
 
-        public bool bornFromAsterisco = false;
+    public bool bornFromGodtrain = false;
 
-    private bool alertaDestruido = false;
-    private bool voltando = false;
+    private bool DestroyedAlert = false;
+    private bool returning = false;
     private Rigidbody2D rb;
 
     private Vector3 stepNormal = new Vector3(-3.45f, 0f, 0f);
@@ -18,7 +18,7 @@ public class TrainAutoDestroy : MonoBehaviour
 
     private float extraOffset = 500f;
 
-        private float outTimer = 0f;
+    private float outTimer = 0f;
     private float maxOutTime = 1f;
 
     void Start()
@@ -28,27 +28,27 @@ public class TrainAutoDestroy : MonoBehaviour
 
     void Update()
     {
-        if (!bornFromAsterisco)
+        if (!bornFromGodtrain)
         {
-                        AtualizaTremNormal();
+            UpdateNormalTrain();
         }
         else
         {
-                        AtualizaTremAsterisco();
+            UpdateGodTrain();
         }
     }
 
-            
-    private bool jaEntrouNaTela = false;
 
-    void AtualizaTremAsterisco()
+    private bool IsOnScreen = false;
+
+    void UpdateGodTrain()
     {
         Transform marker = transform.Find("Marker");
         Vector3 baseLocal = marker != null ? marker.localPosition : transform.localPosition;
 
-                for (int i = 0; i < vagoes.Count; i++)
+        for (int i = 0; i < wagons.Count; i++)
         {
-            var vagao = vagoes[i];
+            var vagao = wagons[i];
             if (vagao == null) continue;
 
             if (i == 0)
@@ -59,29 +59,29 @@ public class TrainAutoDestroy : MonoBehaviour
             vagao.transform.localScale = Vector3.one;
         }
 
-                if (!jaEntrouNaTela)
+        if (!IsOnScreen)
         {
-            foreach (var v in vagoes)
+            foreach (var v in wagons)
             {
                 if (v == null) continue;
-                if (!ForaDaTela(v.transform.position))
+                if (!IsOutOfScreen(v.transform.position))
                 {
-                    jaEntrouNaTela = true;
+                    IsOnScreen = true;
                     break;
                 }
             }
 
-                        if (!jaEntrouNaTela && !ForaDaTela(transform.position))
-                jaEntrouNaTela = true;
+            if (!IsOnScreen && !IsOutOfScreen(transform.position))
+                IsOnScreen = true;
         }
 
-                if (jaEntrouNaTela && TodosForaDaTela())
+        if (IsOnScreen && AreAllOutOfScreen())
         {
             outTimer += Time.deltaTime;
             if (outTimer >= maxOutTime)
             {
-                foreach (var v in vagoes) if (v != null) Destroy(v);
-                if (alertaVisual != null) Destroy(alertaVisual);
+                foreach (var v in wagons) if (v != null) Destroy(v);
+                if (visualAlert != null) Destroy(visualAlert);
                 Destroy(gameObject);
             }
         }
@@ -91,28 +91,28 @@ public class TrainAutoDestroy : MonoBehaviour
         }
     }
 
-        bool TodosForaDaTela()
+    bool AreAllOutOfScreen()
     {
-        if (!ForaDaTela(transform.position)) return false;
+        if (!IsOutOfScreen(transform.position)) return false;
 
-        foreach (var v in vagoes)
+        foreach (var v in wagons)
         {
             if (v == null) continue;
-            if (!ForaDaTela(v.transform.position)) return false;
+            if (!IsOutOfScreen(v.transform.position)) return false;
         }
 
         return true;
     }
 
-        bool ForaDaTela(Vector3 pos)
+    bool IsOutOfScreen(Vector3 pos)
     {
         Vector3 vp = Camera.main.WorldToViewportPoint(pos);
         return (vp.x < -0.2f || vp.x > 1.2f || vp.y < -0.2f || vp.y > 1.2f);
     }
 
 
-            
-    void AtualizaTremNormal()
+
+    void UpdateNormalTrain()
     {
         float angle = transform.eulerAngles.z;
 
@@ -122,49 +122,49 @@ public class TrainAutoDestroy : MonoBehaviour
 
         Vector3 step = vertical ? stepTopToBottom : stepNormal;
 
-        if (!alertaDestruido && alertaVisual != null)
+        if (!DestroyedAlert && visualAlert != null)
         {
             Vector3 vp = Camera.main.WorldToViewportPoint(transform.position);
 
             if (!vertical)
             {
-                if (!bumerangueAtivo)
+                if (!boomerangactive)
                 {
                     if (vp.x >= 0f)
                     {
-                        Destroy(alertaVisual);
-                        alertaVisual = null;
-                        alertaDestruido = true;
+                        Destroy(visualAlert);
+                        visualAlert = null;
+                        DestroyedAlert = true;
                     }
                 }
                 else
                 {
-                    if (voltando && vp.x * Screen.width < -extraOffset)
+                    if (returning && vp.x * Screen.width < -extraOffset)
                     {
-                        Destroy(alertaVisual);
-                        alertaVisual = null;
-                        alertaDestruido = true;
+                        Destroy(visualAlert);
+                        visualAlert = null;
+                        DestroyedAlert = true;
                     }
                 }
             }
             else
             {
-                if (!bumerangueAtivo)
+                if (!boomerangactive)
                 {
                     if (vp.y <= 1f)
                     {
-                        Destroy(alertaVisual);
-                        alertaVisual = null;
-                        alertaDestruido = true;
+                        Destroy(visualAlert);
+                        visualAlert = null;
+                        DestroyedAlert = true;
                     }
                 }
                 else
                 {
-                    if (voltando && vp.y * Screen.height > Screen.height + extraOffset)
+                    if (returning && vp.y * Screen.height > Screen.height + extraOffset)
                     {
-                        Destroy(alertaVisual);
-                        alertaVisual = null;
-                        alertaDestruido = true;
+                        Destroy(visualAlert);
+                        visualAlert = null;
+                        DestroyedAlert = true;
                     }
                 }
             }
@@ -173,9 +173,9 @@ public class TrainAutoDestroy : MonoBehaviour
         Transform anchor = transform.Find("Marker");
         Vector3 baseLocal = anchor != null ? anchor.localPosition : transform.localPosition;
 
-        for (int i = 0; i < vagoes.Count; i++)
+        for (int i = 0; i < wagons.Count; i++)
         {
-            var vagao = vagoes[i];
+            var vagao = wagons[i];
             if (vagao == null) continue;
 
             Vector3 localOffset = (vertical ? stepTopToBottom : stepNormal) * i;
@@ -185,7 +185,7 @@ public class TrainAutoDestroy : MonoBehaviour
 
         bool todosFora = true;
 
-        foreach (var vagao in vagoes)
+        foreach (var vagao in wagons)
         {
             if (vagao == null) continue;
 
@@ -194,13 +194,13 @@ public class TrainAutoDestroy : MonoBehaviour
             if (!vertical)
             {
                 float px = vp.x * Screen.width;
-                if (voltando) { if (px >= -extraOffset) { todosFora = false; break; } }
+                if (returning) { if (px >= -extraOffset) { todosFora = false; break; } }
                 else { if (px <= Screen.width + extraOffset) { todosFora = false; break; } }
             }
             else
             {
                 float py = vp.y * Screen.height;
-                if (voltando) { if (py <= Screen.height + extraOffset) { todosFora = false; break; } }
+                if (returning) { if (py <= Screen.height + extraOffset) { todosFora = false; break; } }
                 else { if (py >= -extraOffset) { todosFora = false; break; } }
             }
         }
@@ -210,21 +210,21 @@ public class TrainAutoDestroy : MonoBehaviour
         if (!vertical)
         {
             float px2 = tvp.x * Screen.width;
-            if (voltando) { if (px2 >= -extraOffset) todosFora = false; }
+            if (returning) { if (px2 >= -extraOffset) todosFora = false; }
             else { if (px2 <= Screen.width + extraOffset) todosFora = false; }
         }
         else
         {
             float py2 = tvp.y * Screen.height;
-            if (voltando) { if (py2 <= Screen.height + extraOffset) todosFora = false; }
+            if (returning) { if (py2 <= Screen.height + extraOffset) todosFora = false; }
             else { if (py2 >= -extraOffset) todosFora = false; }
         }
 
         if (todosFora)
         {
-            if (bumerangueAtivo && !voltando)
+            if (boomerangactive && !returning)
             {
-                voltando = true;
+                returning = true;
 
                 Vector3 s = transform.localScale;
                 s.x *= -1f;
@@ -238,11 +238,11 @@ public class TrainAutoDestroy : MonoBehaviour
             }
             else
             {
-                foreach (var v in vagoes)
+                foreach (var v in wagons)
                     if (v != null) Destroy(v);
 
-                if (alertaVisual != null)
-                    Destroy(alertaVisual);
+                if (visualAlert != null)
+                    Destroy(visualAlert);
 
                 Destroy(gameObject);
             }

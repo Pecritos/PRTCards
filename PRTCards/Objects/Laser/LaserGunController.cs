@@ -4,181 +4,161 @@ using PRT.Objects.Laser;
 using SoundImplementation;
 using System.Collections;
 using UnityEngine;
+using Photon.Pun;
 
 public class LaserGunController : MonoBehaviour
 {
-    public Gun gun;
-    private LaserCutter2D laserCutter;
+	public Gun gun;
+	private LaserCutter2D laserCutter;
+	public Coroutine laserCoroutine;
 
-    public Coroutine laserCoroutine;
+	private bool ActiveLaser = false;
+	private float sinceAttackLaser = 999f;
+	private float sinceAttackNormal = 999f;
 
-    private bool ActiveLaser = false;
+	private float attackSpeedOriginal = -1f;
+	private bool dontAllowAutoFireOriginal;
+	private float spreadOriginal;
 
-    private float sinceAttackLaser = 999f;
-    private float sinceAttackNormal = 999f;
+	public float attackSpeedLaser = 5f;
+	public bool LoadingLaser = false;
 
-    private float attackSpeedOriginal;
-    private bool dontAllowAutoFireOriginal;
-    private float spreadOriginal;
+	private AudioSource chargeSource;
+	private AudioSource fireSource;
 
-    public float attackSpeedLaser = 5f;
-    public bool LoadingLaser = false;
+	private static AudioClip laserChargeClip;
+	private static AudioClip laserFireClip;
 
-    private AudioSource chargeSource;
-    private AudioSource fireSource;
+	private PhotonView PlayerView => GetComponent<PhotonView>();
 
-    private static AudioClip laserChargeClip;
-    private static AudioClip laserFireClip;
+	void Awake()
+	{
+		SetupAudio();
+	}
 
-    void Awake()
-    {
-        SetupAudio();
-        StartCoroutine(InitLaser());
-    }
+	void Start()
+	{
+		StartCoroutine(InitLaser());
+	}
 
-    void Update()
-    {
-        if (gun == null || gun.player == null) return;
+	void Update()
+	{
+		if (gun == null || gun.player == null || PlayerView == null) return;
+		if (!PlayerView.IsMine) return;
 
-        float dt = Time.deltaTime;
+		float dt = Time.deltaTime;
+		if (ActiveLaser) sinceAttackLaser += dt;
+		else sinceAttackNormal += dt;
 
-        if (ActiveLaser)
-            sinceAttackLaser += dt;
-        else
-            sinceAttackNormal += dt;
+		var actions = gun.player.data.playerActions;
+		if (actions != null && actions.GetAdditionalData().switchWeapon.WasPressed)
+		{
+			PlayerView.RPC("RPC_ToggleLaserMode", RpcTarget.All, !ActiveLaser);
+		}
+	}
 
-        var actions = gun.player.data.playerActions;
-        if (actions == null) return;
+	[PunRPC]
+	private void RPC_ToggleLaserMode(bool activate)
+	{
+		ActiveLaser = activate;
+		if (ActiveLaser)
+		{
+			if (attackSpeedOriginal < 0)
+			{
+				attackSpeedOriginal = gun.attackSpeed;
+				dontAllowAutoFireOriginal = gun.dontAllowAutoFire;
+				spreadOriginal = gun.spread;
+			}
+			sinceAttackNormal = gun.sinceAttack;
+			gun.sinceAttack = sinceAttackLaser;
+			gun.attackSpeed = attackSpeedLaser;
+			gun.dontAllowAutoFire = true;
+			gun.spread = 0f;
+		}
+		else
+		{
+			sinceAttackLaser = gun.sinceAttack;
+			gun.sinceAttack = sinceAttackNormal;
+			CancelLaser();
+			if (attackSpeedOriginal >= 0)
+			{
+				gun.attackSpeed = attackSpeedOriginal;
+				gun.dontAllowAutoFire = dontAllowAutoFireOriginal;
+				gun.spread = spreadOriginal;
+			}
+		}
 
-        if (actions.GetAdditionalData().switchWeapon.WasPressed)
-        {
-            ActiveLaser = !ActiveLaser;
+		if (laserCutter != null) laserCutter.SetAimLaser(ActiveLaser);
+	}
 
-            if (ActiveLaser)
-            {
-                sinceAttackNormal = gun.sinceAttack;
+	public void NetworkPlayCharge() => PlayerView.RPC("RPC_LaserCharge", RpcTarget.All, true);
+	public void NetworkStopCharge() => PlayerView.RPC("RPC_LaserCharge", RpcTarget.All, false);
+	public void NetworkPlayFire() => PlayerView.RPC("RPC_LaserFire", RpcTarget.All);
 
-                gun.sinceAttack = sinceAttackLaser;
+	[PunRPC]
+	private void RPC_LaserCharge(bool start) { if (start) PlayChargeSound(); else StopChargeSound(); }
 
-                attackSpeedOriginal = gun.attackSpeed;
-                dontAllowAutoFireOriginal = gun.dontAllowAutoFire;
-                spreadOriginal = gun.spread;
+	[PunRPC]
+	private void RPC_LaserFire()
+	{
+		PlayFireSound();
 
-                gun.attackSpeed = attackSpeedLaser;
-                gun.dontAllowAutoFire = true;
-                gun.spread = 0f;
-            }
-            else
-            {
-                sinceAttackLaser = gun.sinceAttack;
+		if (laserCutter != null)
+		{
+			laserCutter.TriggerVisualEffects();
 
-                gun.sinceAttack = sinceAttackNormal;
+			Vector3 dir = gun.shootPosition.forward;
+			GamefeelManager.GameFeel(dir * 30f);
+		}
+	}
 
-                CancelLaser();
+	IEnumerator InitLaser()
+	{
+		while (gun == null) yield return null;
+		yield return new WaitForSeconds(0.1f);
+		laserCutter = gun.GetComponentInChildren<LaserCutter2D>();
+		if (laserCutter != null)
+		{
+			laserCutter.SwitchOffLaser();
+			laserCutter.SetAimLaser(ActiveLaser);
+		}
+	}
 
-                gun.attackSpeed = attackSpeedOriginal;
-                gun.dontAllowAutoFire = dontAllowAutoFireOriginal;
-                gun.spread = spreadOriginal;
-            }
+	void SetupAudio()
+	{
+		chargeSource = gameObject.AddComponent<AudioSource>();
+		chargeSource.volume = 0.05f;
+		chargeSource.playOnAwake = false;
+		chargeSource.loop = false;
+		fireSource = gameObject.AddComponent<AudioSource>();
+		fireSource.volume = 0.055f;
+		fireSource.playOnAwake = false;
+		fireSource.loop = false;
 
-            if (laserCutter != null)
-                laserCutter.SetAimLaser(ActiveLaser);
-        }
+		if (laserChargeClip == null) laserChargeClip = Assets.Bundle.LoadAsset<AudioClip>("laser_charge_loop");
+		if (laserFireClip == null) laserFireClip = Assets.Bundle.LoadAsset<AudioClip>("laserrealease");
 
-        gun.GetAdditionalData().canShoot = !ActiveLaser;
-    }
+		chargeSource.clip = laserChargeClip;
+		fireSource.clip = laserFireClip;
 
-    IEnumerator InitLaser()
-    {
-        yield return null;
+		var groups = SoundVolumeManager.Instance.audioMixer.FindMatchingGroups("SFX");
+		if (groups.Length > 0) { chargeSource.outputAudioMixerGroup = groups[0]; fireSource.outputAudioMixerGroup = groups[0]; }
+	}
 
-        laserCutter = gun.GetComponentInChildren<LaserCutter2D>();
-        if (laserCutter == null)
-        {
-            var laserGO = LaserLoader.SpawnLaser(Vector3.zero, Quaternion.identity);
-            laserGO.transform.SetParent(gun.transform);
-            laserGO.transform.localPosition = Vector3.zero;
-            laserGO.transform.localRotation = Quaternion.identity;
-            laserCutter = laserGO.GetComponent<LaserCutter2D>();
-        }
+	public void PlayChargeSound() { if (!chargeSource.isPlaying) chargeSource.Play(); }
+	public void StopChargeSound() { if (chargeSource.isPlaying) chargeSource.Stop(); }
+	public void PlayFireSound() { if (fireSource.clip != null) fireSource.PlayOneShot(fireSource.clip); }
 
-        laserCutter.SwitchOffLaser();
-        laserCutter.SetAimLaser(false);
-    }
+	public void CancelLaser()
+	{
+		if (laserCoroutine != null) { gun.StopCoroutine(laserCoroutine); laserCoroutine = null; }
+		LoadingLaser = false;
+		StopChargeSound();
+		if (laserCutter != null) laserCutter.SwitchOffLaser();
+	}
 
-    void SetupAudio()
-    {
-
-        chargeSource = gameObject.AddComponent<AudioSource>();
-        chargeSource.volume = 0.05f;
-        chargeSource.playOnAwake = false;
-        fireSource = gameObject.AddComponent<AudioSource>();
-        fireSource.volume = 0.055f;
-        fireSource.playOnAwake = false;
-        if (laserChargeClip == null)
-            laserChargeClip = Assets.Bundle.LoadAsset<AudioClip>("laser_charge_loop");
-
-        if (laserFireClip == null)
-            laserFireClip = Assets.Bundle.LoadAsset<AudioClip>("laserrealease");
-
-        chargeSource.clip = laserChargeClip;
-        fireSource.clip = laserFireClip;
-
-        var sfxGroups = SoundVolumeManager.Instance.audioMixer.FindMatchingGroups("SFX");
-        if (sfxGroups.Length > 0)
-        {
-            chargeSource.outputAudioMixerGroup = sfxGroups[0];
-            fireSource.outputAudioMixerGroup = sfxGroups[0];
-        }
-        else
-        {
-        }
-    }
-
-
-    public void PlayChargeSound()
-    {
-        if (!chargeSource.isPlaying)
-            chargeSource.Play();
-    }
-
-    public void StopChargeSound()
-    {
-        if (chargeSource.isPlaying)
-            chargeSource.Stop();
-    }
-
-    public void PlayFireSound()
-    {
-        fireSource.PlayOneShot(fireSource.clip);
-    }
-
-    public void CancelLaser()
-    {
-        if (laserCoroutine != null)
-        {
-            gun.StopCoroutine(laserCoroutine);
-            laserCoroutine = null;
-        }
-
-        LoadingLaser = false;
-        StopChargeSound();
-
-        if (laserCutter != null)
-            laserCutter.SwitchOffLaser();
-    }
-
-    public bool IsLaserActive() => ActiveLaser;
-
-    public bool IsWaitingForCooldown()
-    {
-        return sinceAttackLaser < (1f / attackSpeedLaser);
-    }
-
-    public void ResetLaserCooldown()
-    {
-        sinceAttackLaser = 0f;
-    }
-
-    public LaserCutter2D GetLaserCutter() => laserCutter;
+	public bool IsLaserActive() => ActiveLaser;
+	public bool IsWaitingForCooldown() => sinceAttackLaser < (1f / attackSpeedLaser);
+	public void ResetLaserCooldown() => sinceAttackLaser = 0f;
+	public LaserCutter2D GetLaserCutter() => laserCutter;
 }

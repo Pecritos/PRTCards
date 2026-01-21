@@ -15,8 +15,6 @@ namespace PRT.Core
 	|| TNTLauncher.card == null || TNTRain.card == null || TNTStorm.card == null)
 				yield return null;
 
-			ClassesRegistry.Register(ILikeTrains.card, (CardType)1, 0);
-			ClassesRegistry.Register(ILikeLasers.card, (CardType)1, 0);
 			ClassesRegistry.Register(BigTrain.card, (CardType)16, ILikeTrains.card, 0);
 			ClassesRegistry.Register(FastWheels.card, (CardType)16, ILikeTrains.card, 0);
 			ClassesRegistry.Register(MoreWagons.card, (CardType)16, ILikeTrains.card, 0);
@@ -24,9 +22,10 @@ namespace PRT.Core
 			ClassesRegistry.Register(GodOfTrains.card, (CardType)16, DoubleTrain.card, 0);
 			ClassesRegistry.Register(DoubleTrain.card, (CardType)16, ILikeTrains.card, 0);
 			ClassesRegistry.Register(BoomerangTrain.card, (CardType)16, ILikeTrains.card, 0);
-			ClassesRegistry.Register(NowItHurts.card, (CardType)16, ILikeLasers.card, 0);
+			ClassesRegistry.Register(NowItHurts.card, (CardType)16, QuickCut.card, 0);
 
 			ClassesRegistry.Register(TNTRain.card, (CardType)16, TNTLauncher.card, 0);
+			ClassesRegistry.Register(TNTStorm.card, (CardType)16, TNTLauncher.card, 0);
 		}
 	}
 }

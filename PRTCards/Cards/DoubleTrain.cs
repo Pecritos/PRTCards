@@ -45,8 +45,8 @@ namespace PRT.Cards
             new CardInfoStat()
             {
                 positive = true,
-                stat = "Train",
-                amount = "+1"
+                stat = "Trains",
+                amount = "2"
             }
         };
 

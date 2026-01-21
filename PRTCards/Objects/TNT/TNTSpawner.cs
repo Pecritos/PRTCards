@@ -16,6 +16,12 @@ namespace PRT.Objects.TNT
             return bundle;
         }
 
+        public static GameObject GetPrefab()
+        {
+            if (tntPrefab == null) LoadPrefab();
+            return tntPrefab;
+        }
+
         public static void LoadPrefab()
         {
             if (tntPrefab != null) return;

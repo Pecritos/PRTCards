@@ -54,7 +54,7 @@ namespace PRT
 			CustomCard.BuildCard<TNTLauncher>();
 			CustomCard.BuildCard<TNTRain>();
 			CustomCard.BuildCard<TNTStorm>();
-			CustomCard.BuildCard<ILikeLasers>();
+			CustomCard.BuildCard<QuickCut>();
 			CustomCard.BuildCard<NowItHurts>();
 			CustomCard.BuildCard<BoomerangTrain>();
 			CustomCard.BuildCard<DoubleTrain>();
@@ -69,12 +69,20 @@ namespace PRT
 				DontDestroyOnLoad(obj);
 			}
 
+			if (FindObjectOfType<MapSceneRuntimeIDManager>() == null)
+			{
+				var go = new GameObject("MapSceneRuntimeIDManager");
+				var manager = go.AddComponent<MapSceneRuntimeIDManager>();
+				DontDestroyOnLoad(go);
+			}
+
 			Unbound.RegisterCredits(
 				ModName,
 				new[] { "Pecritos" },
 				new[] { "github" },
 				new[] { "https://github.com/Pecritos/PRTCards" }
 			);
+
 		}
 	}
 }

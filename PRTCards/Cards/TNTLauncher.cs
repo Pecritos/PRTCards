@@ -35,8 +35,11 @@ namespace PRT.Cards
                 poolGO.AddComponent<ExplosionPool>();
             }
 
-            var effects = player.gameObject.GetComponent<BlockSpawnerEffects>();
+                        var effects = player.gameObject.GetComponent<BlockSpawnerEffects>();
             if (effects == null) effects = player.gameObject.AddComponent<BlockSpawnerEffects>();
+
+                        var tntproxy = player.gameObject.GetComponent<TNTNetworkProxy>();
+            if (tntproxy == null) tntproxy = player.gameObject.AddComponent<TNTNetworkProxy>();
 
             blockCallback = (BlockTrigger.BlockTriggerType triggerType) =>
             {
